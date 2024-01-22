@@ -1,0 +1,57 @@
+version: '3'
+
+networks:
+  kafkaDemo:
+
+services:
+  producer:
+    image: golang:1.21.6-alpine
+    container_name: producer
+    ports:
+      - '8000:8000'
+    volumes:
+      - './producer:/var/www/html'
+    networks:
+      - kafkaDemo
+  consumer:
+    image: golang:1.21.6-alpine
+    container_name: consumer
+    ports:
+      - '8088:8000'
+    volumes:
+      - './consumer:/var/www/html'
+    networks:
+      - kafkaDemo
+  postgres:
+    image: postgres:12.17-alpine
+    environment:
+      POSTGRES_USER: nelwhix
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: kafka-demo
+    container_name: kafkaDemoDb
+    volumes:
+      - './pgsql:/var/lib/postgresql/data'
+    ports:
+      - '5432:5432'
+    networks:
+      - kafkaDemo
+  kafka:
+    image: 'bitnami/kafka:3.4.1'
+    container_name: kafka
+    networks:
+      - kafkaDemo
+    ports:
+      - '9092:9092'
+    volumes:
+      - './kafka:/bitnami/kafka'
+    environment:
+      # KRaft settings
+      - KAFKA_CFG_NODE_ID=0
+      - KAFKA_CFG_PROCESS_ROLES=controller,broker
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@kafka:9093
+      # Listeners
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,CONTROLLER://:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
